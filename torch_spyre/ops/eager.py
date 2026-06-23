@@ -123,6 +123,40 @@ register_torch_compile_kernel(
 )
 
 
+@torch.library.register_kernel("aten::max", ["spyre"])  # type:ignore
+def spyre__max(self: torch.Tensor, dim: int = -1, keepdim: bool = False):
+    # Move to CPU, run the op, move result back.
+    cpu_self = self.to("cpu")
+    cpu_dim = maybe_wrap_dim(dim, cpu_self.ndim)
+    cpu_result = torch.ops.aten.max(cpu_self, cpu_dim, keepdim)
+    return cpu_result.to(self.device)
+
+@torch.library.register_kernel("aten::min", ["spyre"])  # type:ignore
+def spyre__min(self: torch.Tensor, dim: int = -1, keepdim: bool = False):
+    # Move to CPU, run the op, move result back.
+    cpu_self = self.to("cpu")
+    cpu_dim = maybe_wrap_dim(dim, cpu_self.ndim)
+    cpu_result = torch.ops.aten.min(cpu_self, cpu_dim, keepdim)
+    return cpu_result.to(self.device)
+
+@torch.library.register_kernel("aten::amax.out", ["spyre"])  # type:ignore
+def spyre__amax_out(self: torch.Tensor, dim: int = -1, keepdim: bool = False, out: torch.Tensor = None):
+    # Move to CPU, run the op, move result back.
+    cpu_self = self.to("cpu")
+    cpu_dim = maybe_wrap_dim(dim, cpu_self.ndim)
+    cpu_out = out.to("cpu") if out is not None else None
+    cpu_result = torch.ops.aten.amax.out(cpu_self, cpu_dim, keepdim, out=cpu_out)
+    return cpu_result.to(self.device)
+
+@torch.library.register_kernel("aten::amin.out", ["spyre"])  # type:ignore
+def spyre__amin_out(self: torch.Tensor, dim: int = -1, keepdim: bool = False, out: torch.Tensor = None):
+    # Move to CPU, run the op, move result back.
+    cpu_self = self.to("cpu")
+    cpu_dim = maybe_wrap_dim(dim, cpu_self.ndim)
+    cpu_out = out.to("cpu") if out is not None else None
+    cpu_result = torch.ops.aten.amin.out(cpu_self, cpu_dim, keepdim, out=cpu_out)
+    return cpu_result.to(self.device)
+
 @torch.library.register_kernel("aten::fill_.Scalar", ["spyre"])  # type:ignore
 def spyre__fill_scalar(
     self: torch.Tensor, other: int | float | bool | complex
@@ -130,7 +164,6 @@ def spyre__fill_scalar(
     tmp = torch.ones(self.size(), dtype=self.dtype) * other
     self.copy_(tmp)
     return self
-
 
 @torch.library.register_kernel("aten::normal_", ["spyre"])  # type:ignore
 def spyre__normal_(self, mean=0.0, std=1.0, *, generator=None):
